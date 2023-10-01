@@ -1,0 +1,66 @@
+# Version of docker compose - currently 3.8
+
+version: '3.8'
+
+# services (s1: mongodb,s2: node api , s3 : react app)
+
+services:
+  mongodb:
+    image: mongo:6.0.5 
+    #volume : data volume , where /data/db , then it will map with mongodbdata . it will prevent lost of data container shutdown
+    volumes:
+      - mongodbdata:/data/db
+    # if networks not give then docker automatically will run our container in same
+    networks:
+      - mern-network
+    # env setup
+    env_file: 
+      - ./env/mongo.env  
+    # container name , dont want default
+    container_name: mongodb 
+  server :
+     build:
+       context: ./API-jokes
+       dockerfile: Dockerfile
+     # volumes for hot reload  
+     volumes:
+        - ./API-jokes:/app
+     ports:
+        - 5001:5001
+    # need to spinup when mongodb , service ready
+     depends_on:
+        - mongodb 
+        # if networks not give then docker automatically will run our container in same
+       # env setup
+     env_file: 
+       - ./env/server.env    
+     networks:
+        - mern-network
+     container_name: server
+  client : 
+    # run client interactive mode(terminal will not close) , sometime hot relaod not work so
+     stdin_open: true
+     tty: true
+
+     build:
+       context: ./jokes-client
+       dockerfile: Dockerfile
+     # volumes update in src change  
+     volumes:
+        - ./jokes-client/src:/app/src
+     ports:
+        - 3000:3000
+    # need to spinup when mongodb , service ready
+     depends_on:
+        - server
+        # if networks not give then docker automatically will run our container in same
+     networks:
+        - mern-network
+     container_name: client
+  
+# we used name volumes so in the end we need to tell , keeping blank for default configuration
+
+volumes:
+  mongodbdata:
+networks:
+  mern-network:
